@@ -177,8 +177,8 @@ class Cart
                 }
 
                 $newLineItem->note = $this->setNote($newLineItem, $otfVariant);;
-                $newLineItem->price = $this->setPrice($newLineItem, $otfVariant);
-                $newLineItem->salePrice = $this->setSalePrice($newLineItem, $otfVariant);
+                $newLineItem->price = $this->setPrice($otfVariant, $newLineItem);
+                $newLineItem->salePrice = $this->setSalePrice($otfVariant, $newLineItem);
             }
 
             Plugin::getInstance()->getCarts()->getCart()->setRecalculationMode('none');
