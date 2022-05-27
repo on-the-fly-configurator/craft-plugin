@@ -11,8 +11,8 @@
         "ontheflyintegration"
     ],
     "support": {
-        "docs": "???",
-        "issues": "???"
+        "docs": "https://dev.ontheflyconfigurator.com/docs",
+        "issues": "https://github.com/on-the-fly-configurator/craft-plugin/issues"
     },
     "license": "MIT",
     "authors": [
@@ -38,8 +38,6 @@
         "handle": "ontheflyintegration",
         "developer": "Sugar Rush",
         "developerUrl": "https://wearesugarrush.co",
-        "documentationUrl": "???",
-        "changelogUrl": "???",
         "class": "OnTheFlyConfigurator\\OnTheFlyIntegration"
     }
 }
