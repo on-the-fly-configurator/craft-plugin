@@ -1,0 +1,45 @@
+{
+    "name": "on-the-fly-configurator/craft-integration",
+    "description": "Integration of On The Fly to your eCommerce website. This allows users to navigate from OTF to the eCommerce cart with the OTF plugins added to their cart/basket so they can use the companies on payment gateways.",
+    "type": "craft-plugin",
+    "version": "1.0.0",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin",
+        "ontheflyintegration"
+    ],
+    "support": {
+        "docs": "???",
+        "issues": "???"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sugar Rush",
+            "homepage": "https://wearesugarrush.co"
+        }
+    ],
+    "require": {
+        "craftcms/cms": "^3.0.0"
+    },
+    "require-dev": {
+      "codeception/codeception": "^3.0",
+      "vlucas/phpdotenv": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+          "OnTheFlyConfigurator\\": "src/"
+        }
+    },
+    "extra": {
+        "name": "On The Fly Craft Integration",
+        "handle": "ontheflyintegration",
+        "developer": "Sugar Rush",
+        "developerUrl": "https://wearesugarrush.co",
+        "documentationUrl": "???",
+        "changelogUrl": "???",
+        "class": "OnTheFlyConfigurator\\OnTheFlyIntegration"
+    }
+}

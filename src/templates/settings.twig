@@ -1,0 +1,32 @@
+{# @var craft \craft\web\twig\variables\CraftVariable #}
+{#
+/**
+ * ontheflyintegration plugin for Craft CMS 3.x
+ *
+ * ontheflyintegration Settings.twig
+ *
+ * @author    Sugar Rush
+ * @copyright Copyright (c) 2022 Sugar Rush
+ * @link      http://wearesugarrush.co/
+ * @package   Ontheflyintegration
+ * @since     1.0.0
+ */
+#}
+
+{% import "_includes/forms" as forms %}
+
+{{ forms.textField({
+    label: 'API Key',
+    instructions: 'Enter your API key',
+    id: 'apiKey',
+    name: 'apiKey',
+    value: settings['apiKey']})
+}}
+
+{{ forms.textField({
+    label: 'SubDomain',
+    instructions: 'Enter your Subdomain',
+    id: 'subDomain',
+    name: 'subDomain',
+    value: settings['subDomain']})
+}}
