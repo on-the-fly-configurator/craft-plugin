@@ -25,7 +25,6 @@
         "craftcms/cms": "^3.0.0"
     },
     "require-dev": {
-      "codeception/codeception": "^3.0",
       "vlucas/phpdotenv": "^3.0"
     },
     "autoload": {
@@ -39,5 +38,11 @@
         "developer": "Sugar Rush",
         "developerUrl": "https://wearesugarrush.co",
         "class": "OnTheFlyConfigurator\\OnTheFlyIntegration"
+    },
+    "config": {
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        }
     }
 }
