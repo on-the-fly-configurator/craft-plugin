@@ -22,7 +22,7 @@ use yii\base\Event;
 class OnTheFlyIntegration extends Plugin
 {
     public static $plugin;
-    public $schemaVersion = '1.0.7';
+    public $schemaVersion = '1.0.8';
     public $hasCpSettings = true;
     public $hasCpSection = false;
 

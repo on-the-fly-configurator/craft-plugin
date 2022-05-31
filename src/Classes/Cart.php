@@ -31,11 +31,17 @@ class Cart
 
         $this->getOrderFromOtf($token);
 
-        if(!$this->canGetItems()) {
+
+        if($this->response->getStatusCode() != 200) {
             return false;
         }
 
         $this->getItemsFromResponse();
+
+        if(isset($this->token_data->message)) {
+            return false;
+        }
+
         $this->getOtfProductsArray();
         $this->getCart();
         $this->addItemsToCart();
@@ -54,15 +60,6 @@ class Cart
                 'Xco-Api-Key' => $settings->apiKey
             ]
         ]);
-    }
-
-    public function canGetItems()
-    {
-        if($this->response->getStatusCode() != 200 || !isset($this->token_data->message)) {
-            return false;
-        }
-
-        return true;
     }
 
     public function getItemsFromResponse()
