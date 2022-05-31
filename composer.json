@@ -2,7 +2,7 @@
     "name": "on-the-fly-configurator/craft-integration",
     "description": "Integration of On The Fly to your eCommerce website. This allows users to navigate from OTF to the eCommerce cart with the OTF plugins added to their cart/basket so they can use the companies on payment gateways.",
     "type": "craft-plugin",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "keywords": [
         "craft",
         "cms",
