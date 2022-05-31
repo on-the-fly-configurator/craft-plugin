@@ -31,12 +31,12 @@ class Cart
 
         $this->getOrderFromOtf($token);
 
-        if(!$this->response) {
+        if(!$this->canGetItems()) {
             return false;
         }
 
         if($this->response->getStatusCode() == 200) {
-            $this->getTokenData();
+            $this->getItemsFromResponse();
             $this->getOtfProductsArray();
             $this->getCart();
             $this->addItemsToCart();
@@ -58,7 +58,16 @@ class Cart
         ]);
     }
 
-    public function getTokenData()
+    public function canGetItems()
+    {
+        if(!$this->response->successful() || !array_key_exists('data', $this->response->json())) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function getItemsFromResponse()
     {
         $this->token_data = json_decode($this->response->getBody());
     }
