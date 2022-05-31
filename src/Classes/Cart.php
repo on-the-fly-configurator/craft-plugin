@@ -35,12 +35,10 @@ class Cart
             return false;
         }
 
-        if($this->response->getStatusCode() == 200) {
-            $this->getItemsFromResponse();
-            $this->getOtfProductsArray();
-            $this->getCart();
-            $this->addItemsToCart();
-        }
+        $this->getItemsFromResponse();
+        $this->getOtfProductsArray();
+        $this->getCart();
+        $this->addItemsToCart();
     }
 
     public function getOrderFromOtf($token)
@@ -60,7 +58,7 @@ class Cart
 
     public function canGetItems()
     {
-        if(!$this->response->successful() || !array_key_exists('data', $this->response->json())) {
+        if($this->response->getStatusCode() != 200 || !isset($this->token_data->message)) {
             return false;
         }
 
