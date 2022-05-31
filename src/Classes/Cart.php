@@ -18,171 +18,114 @@ use OnTheFlyConfigurator\OnTheFlyIntegration;
 
 class Cart
 {
+    protected $response;
+    protected $token_data;
+    protected $otf_products = [];
+    protected $cart;
+
     public function setCartItemsFromOtf($token = false)
     {
-        if ($token) {
-
-            $response = $this->getOrderFromOtf($token);
-
-            if (!$response) {
-                return false;
-            }
-
-            if ($response->getStatusCode() == 200) {
-
-                $tokenData = json_decode($response->getBody());
-                $otfProducts = $this->getOtfProductsArray($tokenData);
-                $cart = $this->getCart();
-
-                foreach ($otfProducts as $index => $otfProduct) {
-                    if ($otfProduct['external_id']) {
-                        if ($otfProduct['model'] == "App\\Models\\Configure") {
-                            $this->addConfiguredItemToCart($otfProduct, $cart, $index);
-                        } else if ($otfProduct['model'] == "App\\Models\\Customise") {
-                            $this->addCustomisedItemToCart($otfProduct, $cart, $index);
-                        } else if ($otfProduct['model'] == "App\\Models\\Box") {
-                            $this->addBoxedItemToCart($otfProduct, $cart, $index);
-                        }
-                        \Craft::$app->getElements()->saveElement($cart);
-                    }
-                    \Craft::$app->getResponse()->redirect('/cart');
-                }
-            }
+        if(!$token) {
+            return false;
         }
-    }
 
-    public function getCart(){
+        $this->getOrderFromOtf($token);
 
-        $cart = Plugin::getInstance()->getCarts()->getCart();
-        \Craft::$app->getElements()->saveElement($cart);
+        if(!$this->response) {
+            return false;
+        }
 
-        return $cart;
+        if($this->response->getStatusCode() == 200) {
+            $this->getTokenData();
+            $this->getOtfProductsArray();
+            $this->getCart();
+            $this->addItemsToCart();
+        }
     }
 
     public function getOrderFromOtf($token)
     {
-
         $settings = OnTheFlyIntegration::getInstance()->getSettings();
 
-        if (!$settings) {
+        if(!$settings) {
             return false;
         }
 
-        return (new Client)->request('GET', 'https://api.ontheflyconfigurator.com/api/' . $settings->subDomain . '/quotes/' . $token, [
+        $this->response = (new Client)->request('GET', 'https://api.ontheflyconfigurator.com/api/' . $settings->subDomain . '/quotes/' . $token, [
             'headers' => [
                 'Xco-Api-Key' => $settings->apiKey
             ]
         ]);
     }
 
-    public function getOtfProductsArray($tokenData)
+    public function getTokenData()
     {
-        $otfProducts = [];
+        $this->token_data = json_decode($this->response->getBody());
+    }
 
-        foreach ($tokenData as $data) {
-            foreach ($data->items as $key => $item) {
-                $otfProducts[$key] = ['external_id' => $item->external_id, 'model' => $item->model, 'price' => $item->price];
-                foreach ($item->variants as $variant) {
-                    $otfProducts[$key]['variants'][] = ['external_id' => $variant->external_id, 'price' => $variant->price, 'overwrite_price' => $variant->overwrite_price];
+    public function getOtfProductsArray()
+    {
+        // Use the key to index options in the cart
+        foreach($this->token_data as $data) {
+            foreach($data->items as $key => $item) {
+                $this->otf_products[$key] = ['external_id' => $item->external_id, 'model' => $item->model, 'price' => $item->price];
+                foreach($item->variants as $variant) {
+                    $this->otf_products[$key]['variants'][] = ['external_id' => $variant->external_id, 'price' => $variant->price, 'overwrite_price' => $variant->overwrite_price];
                 }
             }
         }
-
-        return $otfProducts;
     }
 
-    public function addConfiguredItemToCart($otfProduct, $cart, $index)
+    public function getCart()
+    {
+        $this->cart = Plugin::getInstance()->getCarts()->getCart();
+        \Craft::$app->getElements()->saveElement($this->cart);
+    }
+
+    public function addItemsToCart()
+    {
+        foreach($this->otf_products as $index => $otfProduct) {
+            if($otfProduct['external_id']) {
+                if($otfProduct['model'] == "App\\Models\\Configure") {
+                    $this->addConfiguredItemToCart($otfProduct, $index);
+                } else if($otfProduct['model'] == "App\\Models\\Customise") {
+                    $this->addCustomisedItemToCart($otfProduct, $index);
+                } else if($otfProduct['model'] == "App\\Models\\Box") {
+                    $this->addBoxedItemToCart($otfProduct, $index);
+                }
+                \Craft::$app->getElements()->saveElement($this->cart);
+            }
+            \Craft::$app->getResponse()->redirect('/cart');
+        }
+    }
+
+    public function addConfiguredItemToCart($otfProduct, $index)
     {
         $product = $this->getVariantBySku($otfProduct['external_id']);
 
-        if ($product) {
+        if($product) {
 
-            $productPurchasableId = $product->getId();
-
-            $newLineItem = Plugin::getInstance()->getLineItems()->createLineItem($cart->id, $productPurchasableId, []);
+            $newLineItem = Plugin::getInstance()->getLineItems()->createLineItem($this->cart->id, $product->getId(), []);
             $newLineItem->price = $otfProduct['price'];
             $newLineItem->salePrice = $otfProduct['price'];
+
+            // Creates unique cart items for each product
             $newLineItem->setOptions(['otfItem' => $index]);
 
-            foreach ($otfProduct['variants'] as $otfVariant) {
+            foreach($otfProduct['variants'] as $otfVariant) {
 
                 $variant = $this->getVariantBySku($otfVariant['external_id']);
 
-                if (!$variant) {
+                if(!$variant) {
                     return $otfVariant['external_id'];
                 }
-
 
                 $newLineItem->note = $this->setNote($newLineItem, $otfVariant);
                 $newLineItem->price = $this->setPrice($otfVariant, $newLineItem);
                 $newLineItem->salePrice = $this->setSalePrice($otfVariant, $newLineItem);
             }
 
-            Plugin::getInstance()->getCarts()->getCart()->setRecalculationMode('none');
-            $cart->addLineItem($newLineItem);
-        }
-    }
-
-    public function addCustomisedItemToCart($otfProduct, $cart, $index)
-    {
-        $product = $this->getVariantBySku($otfProduct['external_id']);
-
-        if ($product) {
-            $productPurchasableId = $product->getId();
-
-            $newLineItem = Plugin::getInstance()->getLineItems()->createLineItem($cart->id, $productPurchasableId, []);
-            $newLineItem->price = '';
-            $newLineItem->salePrice = '';
-            $newLineItem->setOptions(['otfItem' => $index]);
-
-            foreach ($otfProduct['variants'] as $otfVariant) {
-
-                $variant = $this->getVariantBySku($otfVariant['external_id']);
-
-                $price = $otfVariant['overwrite_price'] != "0.00" ? $newLineItem->price + $otfVariant['overwrite_price'] : $newLineItem->price + $otfVariant['price'];
-
-                if (!$variant) {
-                    return $otfVariant['external_id'];
-                }
-
-                $newLineItem->note = $this->setNote($newLineItem, $otfVariant);
-                $newLineItem->price =  $price;
-                $newLineItem->salePrice =  $price;
-            }
-
-
-            Plugin::getInstance()->getCarts()->getCart()->setRecalculationMode('none');
-            $cart->addLineItem($newLineItem);
-        }
-    }
-
-    public function addBoxedItemToCart($otfProduct, $cart, $index)
-    {
-        $product = $this->getVariantBySku($otfProduct['external_id']);
-
-        if ($product) {
-            $productPurchasableId = $product->getId();
-
-            $newLineItem = Plugin::getInstance()->getLineItems()->createLineItem($cart->id, $productPurchasableId, []);
-            $newLineItem->price = $otfProduct['price'];
-            $newLineItem->salePrice = $otfProduct['price'];
-            $newLineItem->setOptions(['otfItem' => $index]);
-
-            foreach ($otfProduct['variants'] as $otfVariant) {
-
-                $variant = $this->getVariantBySku($otfVariant['external_id']);
-
-                if (!$variant) {
-                    return $otfVariant['external_id'];
-                }
-
-                $newLineItem->note = $this->setNote($newLineItem, $otfVariant);;
-                $newLineItem->price = $this->setPrice($otfVariant, $newLineItem);
-                $newLineItem->salePrice = $this->setSalePrice($otfVariant, $newLineItem);
-            }
-
-            Plugin::getInstance()->getCarts()->getCart()->setRecalculationMode('none');
-            $cart->addLineItem($newLineItem);
+            $this->addItemToCart($newLineItem);
         }
     }
 
@@ -191,15 +134,84 @@ class Cart
         return Variant::find()->sku($sku)->one();
     }
 
-    public function setNote($newLineItem, $otfVariant){
+    public function setNote($newLineItem, $otfVariant)
+    {
         return $newLineItem->note . " " . $otfVariant['external_id'] . "\n\r";
     }
 
-    public function setPrice($otfVariant, $newLineItem){
+    public function setPrice($otfVariant, $newLineItem)
+    {
         return $otfVariant['overwrite_price'] != '0.00' ? $newLineItem->price + $otfVariant['overwrite_price'] : $newLineItem->price + 0;
     }
 
-    public function setSalePrice($otfVariant, $newLineItem){
+    public function setSalePrice($otfVariant, $newLineItem)
+    {
         return $otfVariant['overwrite_price'] != '0.00' ? $newLineItem->price + $otfVariant['overwrite_price'] : $newLineItem->price + 0;
+    }
+
+    public function addItemToCart($lineItem)
+    {
+        Plugin::getInstance()->getCarts()->getCart()->setRecalculationMode('none');
+        $this->cart->addLineItem($lineItem);
+    }
+
+    public function addCustomisedItemToCart($otfProduct, $index)
+    {
+        $product = $this->getVariantBySku($otfProduct['external_id']);
+
+        if($product) {
+
+            $newLineItem = Plugin::getInstance()->getLineItems()->createLineItem($this->cart->id, $product->getId(), []);
+
+            // Creates unique cart items for each product
+            $newLineItem->setOptions(['otfItem' => $index]);
+
+            foreach($otfProduct['variants'] as $otfVariant) {
+
+                $variant = $this->getVariantBySku($otfVariant['external_id']);
+
+                $price = $otfVariant['overwrite_price'] != "0.00" ? $newLineItem->price + $otfVariant['overwrite_price'] : $newLineItem->price + $otfVariant['price'];
+
+                if(!$variant) {
+                    return $otfVariant['external_id'];
+                }
+
+                $newLineItem->note = $this->setNote($newLineItem, $otfVariant);
+                $newLineItem->price = $price;
+                $newLineItem->salePrice = $price;
+            }
+
+            $this->addItemToCart($newLineItem);
+        }
+    }
+
+    public function addBoxedItemToCart($otfProduct, $index)
+    {
+        $product = $this->getVariantBySku($otfProduct['external_id']);
+
+        if($product) {
+
+            $newLineItem = Plugin::getInstance()->getLineItems()->createLineItem($this->cart->id, $product->getId(), []);
+            $newLineItem->price = $otfProduct['price'];
+            $newLineItem->salePrice = $otfProduct['price'];
+
+            // Creates unique cart items for each product
+            $newLineItem->setOptions(['otfItem' => $index]);
+
+            foreach($otfProduct['variants'] as $otfVariant) {
+
+                $variant = $this->getVariantBySku($otfVariant['external_id']);
+
+                if(!$variant) {
+                    return $otfVariant['external_id'];
+                }
+
+                $newLineItem->note = $this->setNote($newLineItem, $otfVariant);;
+                $newLineItem->price = $this->setPrice($otfVariant, $newLineItem);
+                $newLineItem->salePrice = $this->setSalePrice($otfVariant, $newLineItem);
+            }
+
+            $this->addItemToCart($newLineItem);
+        }
     }
 }
